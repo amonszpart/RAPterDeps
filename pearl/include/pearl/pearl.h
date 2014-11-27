@@ -64,7 +64,7 @@ namespace am
                      , Params             const& params
                     );
 
-            template <typename PointT, class TLine, typename Scalar = int>
+            template <typename PointT, class TLine, typename Scalar = float>
             static inline int
             expand( std::vector<int>          & labels
                     , boost::shared_ptr<pcl::PointCloud<PointT> > cloud

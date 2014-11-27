@@ -107,16 +107,33 @@ namespace am
             if ( neighs[pid].size() < 2 ) continue;
 
             Eigen::Matrix<Scalar,TLine::Dim,1> line;
-            int err = smartgeometry::geometry::fitLinearPrimitive( /*           output: */ line
-                                                                   , /*         points: */ *cloud
-                                                                   , /*          scale: */ params.scale
-                                                                   , /*        indices: */ &(neighs[pid])
-                                                                   , /*    refit times: */ 2
-                                                                   , /* use input line: */ false
-                                                                   );
+            if ( TLine::EmbedSpaceDim == 2 )
+            {
+                int err = smartgeometry::geometry::fitLinearPrimitive( /*           output: */ line
+                                                                       , /*         points: */ *cloud
+                                                                       , /*          scale: */ params.scale
+                                                                       , /*        indices: */ &(neighs[pid])
+                                                                       , /*    refit times: */ 2
+                                                                       , /* use input line: */ false  );
+                if ( err == EXIT_SUCCESS )
+                    lines.emplace_back( TLine(line) );
+            }
+            else
+            {
+                Eigen::Matrix<Scalar,4,1> plane;
+                int err = smartgeometry::geometry::fitLinearPrimitive<pcl::PointCloud<PointT>, float, 4>
+                          ( /*           output: */ plane
+                                                                       , /*         points: */ *cloud
+                                                                       , /*          scale: */ params.scale
+                                                                       , /*        indices: */ &(neighs[pid])
+                                                                       , /*    refit times: */ 2
+                                                                       , /* use input line: */ false
+                                                                       );
+                if ( err == EXIT_SUCCESS )
+                    lines.emplace_back( TLine( Eigen::Matrix<Scalar,3,1>::Zero() + plane.template head<3>() * plane(3), plane.template head<3>()) );
+            }
 
-            if ( err == EXIT_SUCCESS )
-                lines.emplace_back( TLine(line) );
+
 #else
             // skip, if no neighbours found this point won't contribute a primitive for now
             if ( neighs[pid].size() < 2 )  continue;
@@ -201,7 +218,7 @@ namespace am
                                                 );
         try
         {
-            GCoptimizationGeneralGraph *gc = new GCoptimizationGeneralGraph(num_pixels,num_labels);
+            gco::GCoptimizationGeneralGraph *gc = new gco::GCoptimizationGeneralGraph(num_pixels,num_labels);
             gc->setDataCost  ( data   );
             gc->setSmoothCost( smooth );
             gc->setLabelCost ( beta   );
@@ -265,7 +282,7 @@ namespace am
             // cleanup
             if ( gc     ) { delete gc; gc = NULL; }
         }
-        catch ( GCException e )
+        catch ( gco::GCException e )
         {
             e.Report();
         }
